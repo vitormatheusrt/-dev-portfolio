@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalhes do Mês - ClearFin</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f1f5f9; padding: 20px; color: #334155; }
+        
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 25px; }
+        
+        .btn-voltar { text-decoration: none; color: #64748b; font-weight: 600; font-size: 14px; transition: color 0.2s; }
+        .btn-voltar:hover { color: #0ea5e9; }
+        
+        /* Estilos dos botões de ação na tabela */
+        .btn-excluir {
+            background-color: transparent;
+            border: 1px solid #ef4444;
+            color: #ef4444;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .btn-excluir:hover { background-color: #ef4444; color: white; }
+
+        /* Estilo da Tabela */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { text-align: left; padding: 12px 10px; color: #94a3b8; font-weight: 600; font-size: 13px; text-transform: uppercase; border-bottom: 2px solid #f1f5f9; }
+        td { padding: 15px 10px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+        tr:hover td { background-color: #f8fafc; }
+
+        /* Estilos da Janela Modal Interna */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px);
+            align-items: center; justify-content: center; z-index: 1000;
+        }
+        .modal-box {
+            background: white; padding: 30px; border-radius: 12px; max-width: 400px; width: 90%;
+            text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        .modal-box h3 { margin: 0 0 10px 0; color: #1e293b; font-size: 1.25rem; }
+        .modal-box p { color: #64748b; margin-bottom: 25px; font-size: 14px; }
+        
+        .modal-btn-cancelar {
+            padding: 10px 20px; border: none; border-radius: 8px; background: #f1f5f9; 
+            color: #475569; cursor: pointer; font-weight: 600; transition: background 0.2s;
+        }
+        .modal-btn-cancelar:hover { background: #e2e8f0; }
+        
+        .modal-btn-confirmar {
+            padding: 10px 20px; border: none; border-radius: 8px; background: #ef4444; 
+            color: white; text-decoration: none; font-weight: 600; cursor: pointer; transition: background 0.2s;
+        }
+        .modal-btn-confirmar:hover { background: #dc2626; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h2 style="margin: 0; color: #0f172a;">Lançamentos de: {{ mes_ano }}</h2>
+            <a href="/?aba=extrato" class="btn-voltar">&larr; Voltar ao Painel</a>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-bottom: 30px; text-align: center; background: #f8fafc; padding: 20px; border-radius: 8px;">
+            <div style="flex: 1;">
+                <div style="color: #64748b; font-size: 12px; font-weight: 600; margin-bottom: 5px;">ENTRADAS</div>
+                <div style="color: #22c55e; font-size: 18px; font-weight: bold;">+ R$ {{ "%.2f"|format(entradas) }}</div>
+            </div>
+            <div style="flex: 1; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
+                <div style="color: #64748b; font-size: 12px; font-weight: 600; margin-bottom: 5px;">SAÍDAS</div>
+                <div style="color: #ef4444; font-size: 18px; font-weight: bold;">- R$ {{ "%.2f"|format(saidas) }}</div>
+            </div>
+            <div style="flex: 1;">
+                <div style="color: #64748b; font-size: 12px; font-weight: 600; margin-bottom: 5px;">RESULTADO DO MÊS</div>
+                <div style="color: #0ea5e9; font-size: 18px; font-weight: bold;">R$ {{ "%.2f"|format(saldo_final) }}</div>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Descrição</th>
+                    <th>Categoria</th>
+                    <th>Valor</th>
+                    <th style="text-align: right;">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in transacoes %}
+                <tr>
+                    <td style="color: #64748b;">{{ t.data_vencimento }}</td>
+                    <td style="font-weight: 600; color: #334155;">{{ t.descricao }}</td>
+                    <td style="color: #64748b;">{{ t.categoria }}</td>
+                    <td style="font-weight: bold; color: {{ '#22c55e' if t.tipo == 'receita' else '#ef4444' }}">
+                        {{ '+' if t.tipo == 'receita' else '-' }} R$ {{ "%.2f"|format(t.valor) }}
+                    </td>
+                    <td style="text-align: right;">
+                        <div style="display: flex; gap: 5px; justify-content: center;">
+                            <button class="btn-excluir" style="border-color: #3b82f6; color: #3b82f6;" onclick="abrirModalEditar('{{ t.id }}', '{{ t.descricao }}', '{{ t.valor }}')">Editar</button>
+                            
+                            <button class="btn-excluir" onclick="abrirModalExclusao('/excluir/{{ t.id }}')">Excluir</button>
+                            <button class="btn-excluir" style="border-color: #f97316; color: #f97316;" onclick="abrirModalExclusao('/excluir_serie/{{ t.id }}')">Excluir Futuras</button>
+                        </div>
+                    </td>
+                        </button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" style="text-align: center; padding: 40px; color: #94a3b8;">
+                        Nenhuma transação encontrada neste mês.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div id="modal-editar" class="modal-overlay" style="display: none; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div class="modal-box" style="background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 450px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
+            <h3 style="margin-top: 0; color: #1e293b; font-size: 20px; font-weight: 600; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px;">Editar Lançamento</h3>
+            
+            <form action="/editar_lancamento" method="POST">
+                <input type="hidden" name="id_lancamento" id="edit_id">
+                
+                <div style="margin-bottom: 15px; text-align: left;">
+                    <label style="display: block; font-size: 14px; font-weight: 600; color: #475569; margin-bottom: 5px;">Descrição</label>
+                    <input type="text" name="descricao" id="edit_descricao" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 14px; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#cbd5e1'" required>
+                </div>
+
+                <div style="margin-bottom: 20px; text-align: left;">
+                    <label style="display: block; font-size: 14px; font-weight: 600; color: #475569; margin-bottom: 5px;">Valor (R$)</label>
+                    <input type="number" step="0.01" name="valor" id="edit_valor" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 14px; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#cbd5e1'" required>
+                </div>
+
+                <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: left; margin-bottom: 25px;">
+                    <label style="display: block; font-size: 14px; font-weight: 600; color: #334155; margin-bottom: 12px;">Como deseja aplicar essa edição?</label>
+                    
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #475569; font-size: 14px; padding: 8px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
+                        <input type="radio" name="tipo_edicao" value="somente_esta" style="accent-color: #3b82f6; width: 16px; height: 16px; cursor: pointer;" checked>
+                        <span>Atualizar <b>somente este</b> lançamento</span>
+                    </label>
+                    
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #475569; font-size: 14px; padding: 8px; border-radius: 6px; transition: background 0.2s; margin-top: 5px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
+                        <input type="radio" name="tipo_edicao" value="futuras" style="accent-color: #3b82f6; width: 16px; height: 16px; cursor: pointer;">
+                        <span>Atualizar este e os <b>próximos meses</b></span>
+                    </label>
+                </div>
+
+                <div style="display: flex; gap: 12px; justify-content: flex-end; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+                    <button type="button" onclick="fecharModalEditar()" style="padding: 10px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; border: 1px solid #cbd5e1; background: white; color: #475569; transition: all 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='white'">Cancelar</button>
+                    <button type="submit" style="padding: 10px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; background: #3b82f6; color: white; transition: background 0.2s;" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+                <div style="display: flex; gap: 15px; justify-content: center; margin-top: 25px;">
+                    <button type="button" class="modal-btn-cancelar" onclick="fecharModalEditar()" style="padding: 10px 20px; border-radius: 6px; cursor: pointer; border: 1px solid #ccc; background: white;">Cancelar</button>
+                    <button type="submit" class="modal-btn-confirmar" style="padding: 10px 20px; border-radius: 6px; cursor: pointer; border: none; background: #3b82f6; color: white; font-weight: bold;">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="modal-confirmacao" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Excluir Lançamento</h3>
+            <p>Esta ação é permanente. Tem certeza que deseja apagar este registro do seu fluxo de caixa?</p>
+            <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
+                <button class="modal-btn-cancelar" onclick="fecharModal()">Cancelar</button>
+                <a id="btn-confirmar" href="#" class="modal-btn-confirmar">Excluir</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function abrirModalExclusao(urlExclusao) {
+            // Coloca o link correto no botão vermelho da janela modal
+            document.getElementById('btn-confirmar').href = urlExclusao;
+            // Exibe a janela modal
+            document.getElementById('modal-confirmacao').style.display = 'flex';
+        }
+
+        function fecharModal() {
+            // Esconde a janela modal se o usuário clicar em Cancelar
+            document.getElementById('modal-confirmacao').style.display = 'none';
+        }
+        function abrirModalEditar(id, descricao, valor) {
+            // Preenche os campos ocultos e visíveis com os dados que vieram do botão
+            document.getElementById('edit_id').value = id;
+            document.getElementById('edit_descricao').value = descricao;
+            
+            // Corrige a formatação do valor para o campo <input type="number">
+            let valorFormatado = String(valor).replace(',', '.');
+            document.getElementById('edit_valor').value = valorFormatado;
+            
+            // Mostra o modal na tela
+            document.getElementById('modal-editar').style.display = 'flex';
+        }
+
+        function fecharModalEditar() {
+            // Esconde o modal ao clicar em Cancelar
+            document.getElementById('modal-editar').style.display = 'none';
+        }
+    </script>
+
+</body>
+</html>
